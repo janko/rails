@@ -765,6 +765,16 @@ module Arel # :nodoc: all
           collector << quote_table_name(join_name) << "." << quote_column_name(o.name)
         end
 
+        def visit_Arel_Nodes_Identifier(o, collector)
+          collector << quote_column_name(o.name)
+        end
+
+        def visit_Arel_Nodes_QualifiedIdentifier(o, collector)
+          collector = visit_identifier_part(o.qualifier, collector)
+          collector << "."
+          visit_identifier_part(o.column, collector)
+        end
+
         BIND_BLOCK = proc { "?" }
         private_constant :BIND_BLOCK
 
@@ -925,6 +935,15 @@ module Arel # :nodoc: all
 
         def has_join_sources?(o)
           o.relation.is_a?(Nodes::JoinSource) && !o.relation.right.empty?
+        end
+
+        def visit_identifier_part(part, collector)
+          case part
+          when Nodes::QualifiedIdentifier
+            visit(part, collector)
+          when String
+            collector << quote_column_name(part)
+          end
         end
 
         def has_limit_or_offset_or_orders?(o)

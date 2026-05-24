@@ -511,5 +511,47 @@ module ActiveRecord
       Comment.create!(label: :default, post: post, body: "Nice weather today")
       assert_equal [post], Post.joins(:comments).where(comments: { label: :default, body: "Nice weather today" }).to_a
     end
+
+    def test_where_with_unbound_arel_identifier_renders_unqualified
+      welcome = posts(:welcome)
+      result = Post.where(Arel[:id].eq(welcome.id)).to_a
+      assert_equal [welcome], result
+
+      sql = Post.where(Arel[:id].eq(1)).to_sql
+      assert_match(/WHERE "id" = 1/, sql)
+    end
+
+    def test_unbound_arel_identifier_mixes_with_bound_attributes
+      welcome = posts(:welcome)
+      result = Post.where(Arel[:id].eq(welcome.id).and(Post.arel_table[:title].eq(welcome.title))).to_a
+      assert_equal [welcome], result
+    end
+
+    def test_unbound_arel_identifier_can_be_reused_across_models
+      id_node = Arel[:id]
+      welcome = posts(:welcome)
+      assert_equal [welcome], Post.where(id_node.eq(welcome.id)).to_a
+
+      author = authors(:david)
+      assert_equal [author], Author.where(id_node.eq(author.id)).to_a
+    end
+
+    def test_arel_identifier_predicates_dedup_in_where_clause_or
+      a = Post.where(Arel[:id].eq(1))
+      b = Post.where(Arel[:id].eq(1))
+      assert_equal a.to_sql, a.or(b).to_sql
+    end
+
+    def test_where_with_arel_qualified_identifier
+      welcome = posts(:welcome)
+      result = Post.where(Arel.qualify(:posts, :id).eq(welcome.id)).to_a
+      assert_equal [welcome], result
+    end
+
+    def test_where_with_chained_qualified_identifier
+      welcome = posts(:welcome)
+      result = Post.where(Arel[:posts][:id].eq(welcome.id)).to_a
+      assert_equal [welcome], result
+    end
   end
 end

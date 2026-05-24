@@ -187,6 +187,15 @@ module Arel # :nodoc: all
           visit_edge o, "name"
         end
 
+        def visit_Arel_Nodes_Identifier(o)
+          visit_edge o, "name"
+        end
+
+        def visit_Arel_Nodes_QualifiedIdentifier(o)
+          visit_edge o, "qualifier"
+          visit_edge o, "column"
+        end
+
         def visit__children(o)
           o.children.each_with_index do |child, i|
             edge(i) { visit child }
